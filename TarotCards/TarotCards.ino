@@ -1,144 +1,231 @@
-/*****************************
-----------HARDWARE HOOKUP----------
 
-PINOUT FOR SPARKFUN RFID USB READER
-    Arduino ----- RFID module
-    5V            VCC
-    GND           GND
-    D2            TX
+/**
+   --------------------------------------------------------------------------------------------------------------------
+   Example sketch/program showing how to read data from more than one PICC to serial.
+   --------------------------------------------------------------------------------------------------------------------
+   This is a MFRC522 library example; for further details and other examples see: https://github.com/miguelbalboa/rfid
 
-PINOUT FOR SPARKFUN RFID BREAKOUT BOARD
-    Arduino ----- RFID module
-    5V            VCC
-    GND           GND
-    GND           FORM
-    D2            D0
+   Example sketch/program showing how to read data from more than one PICC (that is: a RFID Tag or Card) using a
+   MFRC522 based RFID Reader on the Arduino SPI interface.
 
-Optional: If using the breakout, you can also 
-put an LED & 330 ohm resistor between 
-the RFID module's READ pin and GND for 
-a "card successfully read" indication.
+   Warning: This may not work! Multiple devices at one SPI are difficult and cause many trouble!! Engineering skill
+            and knowledge are required!
 
-Note: Make sure to GND the FORM pin to enable the ASCII output format. 
+   @license Released into the public domain.
 
---------------------------------------------------
+   Typical pin layout used:
+   -----------------------------------------------------------------------------------------
+               MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
+               Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
+   Signal      Pin          Pin           Pin       Pin        Pin              Pin
+   -----------------------------------------------------------------------------------------
+   RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
+   SPI SS 1    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
+   SPI SS 2    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
+   SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
+   SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
+   SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
 
-******************************/
+*/
 
-#include <SoftwareSerial.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
-// Choose two pins for SoftwareSerial
-SoftwareSerial rSerial(2, 3); // RX, TX
+// PIN Numbers : RESET + SDAs
+#define RST_PIN         9
+#define SS_1_PIN        10
+#define SS_2_PIN        8
+#define SS_3_PIN        7
+#define SS_4_PIN        6
 
-// For SparkFun's tags, we will receive 16 bytes on every
-// tag read, but throw four away. The 13th space will always
-// be 0, since proper strings in Arduino end with 0
+// Led and Relay PINS
+#define GreenLed        2
+#define relayIN         3
+#define RedLed          4
 
-// These constants hold the total tag length (tagLen) and
-// the length of the part we want to keep (idLen),
-// plus the total number of tags we want to check against (kTags)
-const int tagLen = 16;
-const int idLen = 13;
-const int kTags = 4;
 
-// Put your known tags here!
-char knownTags[kTags][idLen] = {
-             "18090000D7C6"
+// List of Tags UIDs that are allowed to open the puzzle
+byte tagarray[][4] = {
+  {0x4B, 0x17, 0xBC, 0x79},
+  {0x8A, 0x2B, 0xBC, 0x79}, 
+  {0x81, 0x29, 0xBC, 0x79},
+  {0xE6, 0xDF, 0xBB, 0x79},
 };
 
-// Empty array to hold a freshly scanned tag
-char newTag[idLen];
+// Inlocking status :
+int tagcount = 0;
+bool access = false;
 
+#define NR_OF_READERS   4
+
+byte ssPins[] = {SS_1_PIN, SS_2_PIN, SS_3_PIN, SS_4_PIN};
+
+// Create an MFRC522 instance :
+MFRC522 mfrc522[NR_OF_READERS];
+
+/**
+   Initialize.
+*/
 void setup() {
-  // Starts the hardware and software serial ports
-  pinMode(13, OUTPUT);
-  Serial.begin(9600);
-  rSerial.begin(9600);
+
+  Serial.begin(9600);           // Initialize serial communications with the PC
+  while (!Serial);              // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
+
+  SPI.begin();                  // Init SPI bus
+
+  /* Initializing Inputs and Outputs */
+  pinMode(GreenLed, OUTPUT);
+  digitalWrite(GreenLed, LOW);
+  pinMode(relayIN, OUTPUT);
+  digitalWrite(relayIN, HIGH);
+  pinMode(RedLed, OUTPUT);
+  digitalWrite(RedLed, LOW);
+
+
+  /* looking for MFRC522 readers */
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+    mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
+    Serial.print(F("Reader "));
+    Serial.print(reader);
+    Serial.print(F(": "));
+    mfrc522[reader].PCD_DumpVersionToSerial();
+    //mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max);
+  }
 }
+
+/*
+   Main loop.
+*/
 
 void loop() {
-  // Counter for the newTag array
-  int i = 0;
-  // Variable to hold each byte read from the serial buffer
-  int readByte;
-  // Flag so we know when a tag is over
-  boolean tag = false;
 
-  // This makes sure the whole tag is in the serial buffer before
-  // reading, the Arduino can read faster than the ID module can deliver!
-  if (rSerial.available() == tagLen) {
-    tag = true;
-  }
+  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
 
-  if (tag == true) {
-    while (rSerial.available()) {
-      // Take each byte out of the serial buffer, one at a time
-      readByte = rSerial.read();
+    // Looking for new cards
+    if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
+      Serial.print(F("Reader "));
+      Serial.print(reader);
 
-      /* This will skip the first byte (2, STX, start of text) and the last three,
-      ASCII 13, CR/carriage return, ASCII 10, LF/linefeed, and ASCII 3, ETX/end of 
-      text, leaving only the unique part of the tag string. It puts the byte into
-      the first space in the array, then steps ahead one spot */
-      if (readByte != 2 && readByte!= 13 && readByte != 10 && readByte != 3) {
-        newTag[i] = readByte;
-        i++;
+      // Show some details of the PICC (that is: the tag/card)
+      Serial.print(F(": Card UID:"));
+      dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
+      Serial.println();
+
+      for (int x = 0; x < sizeof(tagarray); x++)                  // tagarray's row
+      {
+        for (int i = 0; i < mfrc522[reader].uid.size; i++)        //tagarray's columns
+        {
+          if ( mfrc522[reader].uid.uidByte[i] != tagarray[x][i])  //Comparing the UID in the buffer to the UID in the tag array.
+          {
+            DenyingTag();
+            break;
+          }
+          else
+          {
+            if (i == mfrc522[reader].uid.size - 1)                // Test if we browesed the whole UID.
+            {
+              AllowTag();
+            }
+            else
+            {
+              continue;                                           // We still didn't reach the last cell/column : continue testing!
+            }
+          }
+        }
+        if (access) break;                                        // If the Tag is allowed, quit the test.
       }
 
-      // If we see ASCII 3, ETX, the tag is over
-      if (readByte == 3) {
-        tag = false;
+
+      if (access)
+      {
+        if (tagcount == NR_OF_READERS)
+        {
+          OpenDoor();
+        }
+        else
+        {
+          MoreTagsNeeded();
+        }
       }
+      else
+      {
+        UnknownTag();
+      }
+      /*Serial.print(F("PICC type: "));
+        MFRC522::PICC_Type piccType = mfrc522[reader].PICC_GetType(mfrc522[reader].uid.sak);
+        Serial.println(mfrc522[reader].PICC_GetTypeName(piccType));*/
+      // Halt PICC
+      mfrc522[reader].PICC_HaltA();
+      // Stop encryption on PCD
+      mfrc522[reader].PCD_StopCrypto1();
+    } //if (mfrc522[reader].PICC_IsNewC..
+  } //for(uint8_t reader..
+}
 
-    }
-  }
-
-
-  // don't do anything if the newTag array is full of zeroes
-  if (strlen(newTag)== 0) {
-    return;
-  }
-
-  else {
-    int total = 0;
-
-    for (int ct=0; ct < kTags; ct++){
-        total += checkTag(newTag, knownTags[ct]);
-    }
-
-    // If newTag matched any of the tags
-    // we checked against, total will be 1
-    if (total > 0) {
-
-      // Put the action of your choice here!
-      Serial.println("Success!");
-      digitalWrite(13, HIGH);   
-      delay(1000);              
-      digitalWrite(13, LOW);   
-    }
-
-    else {
-        // This prints out unknown cards so you can add them to your knownTags as needed
-        Serial.print("Unknown tag! ");
-        Serial.print(newTag);
-        Serial.println();
-    }
-  }
-
-  // Once newTag has been checked, fill it with zeroes
-  // to get ready for the next tag read
-  for (int c=0; c < idLen; c++) {
-    newTag[c] = 0;
+/**
+   Helper routine to dump a byte array as hex values to Serial.
+*/
+void dump_byte_array(byte * buffer, byte bufferSize) {
+  for (byte i = 0; i < bufferSize; i++) {
+    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+    Serial.print(buffer[i], HEX);
   }
 }
 
-// This function steps through both newTag and one of the known
-// tags. If there is a mismatch anywhere in the tag, it will return 0,
-// but if every character in the tag is the same, it returns 1
-int checkTag(char nTag[], char oTag[]) {
-    for (int i = 0; i < idLen; i++) {
-      if (nTag[i] != oTag[i]) {
-        return 0;
-      }
-    }
-  return 1;
+void printTagcount() {
+  Serial.print("Tag n°");
+  Serial.println(tagcount);
+}
+
+void DenyingTag()
+{
+  tagcount = tagcount;
+  access = false;
+}
+
+void AllowTag()
+{
+  tagcount = tagcount + 1;
+  access = true;
+}
+
+void Initialize()
+{
+  tagcount = 0;
+  access = false;
+}
+
+void OpenDoor()
+{
+  Serial.println("Welcome! the door is now open");
+  Initialize();
+  digitalWrite(relayIN, LOW);
+  digitalWrite(GreenLed, HIGH);
+  delay(2000);
+  digitalWrite(relayIN, HIGH);
+  delay(500);
+  digitalWrite(GreenLed, LOW);
+}
+
+void MoreTagsNeeded()
+{
+  printTagcount();
+  Serial.println("System needs more cards");
+  digitalWrite(RedLed, HIGH);
+  delay(1000);
+  digitalWrite(RedLed, LOW);
+  access = false;
+}
+
+void UnknownTag()
+{
+  Serial.println("This Tag isn't allowed!");
+  printTagcount();
+  for (int flash = 0; flash < 5; flash++)
+  {
+    digitalWrite(RedLed, HIGH);
+    delay(100);
+    digitalWrite(RedLed, LOW);
+    delay(100);
+  }
 }
