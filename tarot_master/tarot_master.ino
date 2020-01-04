@@ -30,10 +30,10 @@ void loop()
     tagreading[1][i] = Wire.read();
   }
   Serial.print("First card reader: ");
-  Serial.print(tagreading[1][0]);
-  Serial.print(tagreading[1][1]);
-  Serial.print(tagreading[1][2]);
-  Serial.println(tagreading[1][3]);
+  Serial.print(tagreading[1][0], HEX);
+  Serial.print(tagreading[1][1], HEX);
+  Serial.print(tagreading[1][2], HEX);
+  Serial.println(tagreading[1][3], HEX);
 
   delay(1000);
 
