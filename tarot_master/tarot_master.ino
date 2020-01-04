@@ -8,9 +8,8 @@ byte tagarray[][4] = {
   {0xCC, 0x1D, 0x9D, 0xD6},
 };
 
-volatile byte tagreading[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
+byte tagreading[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
 
-int x = 0;
 int x_master = 0;
 int data_length = 4;
 
