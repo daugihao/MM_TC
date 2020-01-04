@@ -22,6 +22,7 @@ byte tagarray[][4] = {
 // Inlocking status :
 int tagcount = 0;
 bool access = false;
+int readcount = 10;
 
 #define NR_OF_READERS   1
 
@@ -173,6 +174,11 @@ void UnknownTag()
 
 void requestEvents()
 {
-  Wire.write(value);
+  readcount++;
+  Serial.println(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
   Serial.println("Sending data back to master!");
 }
