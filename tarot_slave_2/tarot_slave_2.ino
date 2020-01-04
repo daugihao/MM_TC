@@ -3,7 +3,7 @@
 #include <MFRC522.h>
 
 // I2C details
-int value = 10876;
+int value = 27;
 int x_slave = 2;
 
 // MFRC522 PIN Numbers : RESET + SDAs
@@ -22,6 +22,7 @@ byte tagarray[][4] = {
 // Inlocking status :
 int tagcount = 0;
 bool access = false;
+int readcount = 0;
 
 #define NR_OF_READERS   1
 
@@ -173,6 +174,11 @@ void UnknownTag()
 
 void requestEvents()
 {
-  Wire.write(value);
+  readcount++;
+  Serial.println(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
+  Wire.write(readcount);
   Serial.println("Sending data back to master!");
 }
