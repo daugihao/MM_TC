@@ -1,52 +1,31 @@
-
-/*
-
-   Typical pin layout used:
-   -----------------------------------------------------------------------------------------
-               MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
-               Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
-   Signal      Pin          Pin           Pin       Pin        Pin              Pin
-   -----------------------------------------------------------------------------------------
-   RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
-   SPI SS 1    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
-   SPI SS 2    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
-   SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
-   SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
-   SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
-
-*/
-
+#include <Wire.h>
 #include <SPI.h>
 #include <MFRC522.h>
 
-// PIN Numbers : RESET + SDAs
-#define RST_PIN         9
-#define SS_1_PIN        10
-#define SS_2_PIN        8
-#define SS_3_PIN        7
-#define SS_4_PIN        6
+// I2C details
+int value = 27;
+int x_slave = 1;
 
-// Led and Relay PINS
-#define GreenLed        2
-#define relayIN         3
-#define RedLed          4
-
+// MFRC522 PIN Numbers : RESET + SDAs
+#define RST_PIN         8
+#define SS_PIN        9
 
 // List of Tags UIDs that are allowed to open the puzzle
 byte tagarray[][4] = {
-  {0x4B, 0x17, 0xBC, 0x79},
-  {0x8A, 0x2B, 0xBC, 0x79}, 
-  {0x81, 0x29, 0xBC, 0x79},
-  {0xE6, 0xDF, 0xBB, 0x79},
+  {0x5C, 0xF9, 0x9D, 0xD6},
+  {0xCC, 0x21, 0x9D, 0xD6}, 
+  {0xDC, 0xCB, 0x9C, 0xD6},
+  {0xEC, 0xC5, 0x9C, 0xD6},
+  {0xCC, 0x1D, 0x9D, 0xD6},
 };
 
 // Inlocking status :
 int tagcount = 0;
 bool access = false;
 
-#define NR_OF_READERS   4
+#define NR_OF_READERS   1
 
-byte ssPins[] = {SS_1_PIN, SS_2_PIN, SS_3_PIN, SS_4_PIN};
+byte ssPins[] = {SS_PIN};
 
 // Create an MFRC522 instance :
 MFRC522 mfrc522[NR_OF_READERS];
@@ -56,26 +35,19 @@ MFRC522 mfrc522[NR_OF_READERS];
 */
 void setup() {
 
+  SPI.begin();                  // Init SPI bus
+  Wire.begin(x_slave);          // join i2c bus (address optional for master)
+  Wire.onRequest(requestEvents);
+
   Serial.begin(9600);           // Initialize serial communications with the PC
   while (!Serial);              // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
-
-  SPI.begin();                  // Init SPI bus
-
-  /* Initializing Inputs and Outputs */
-  pinMode(GreenLed, OUTPUT);
-  digitalWrite(GreenLed, LOW);
-  pinMode(relayIN, OUTPUT);
-  digitalWrite(relayIN, HIGH);
-  pinMode(RedLed, OUTPUT);
-  digitalWrite(RedLed, LOW);
-
+  Serial.print("Communication set up for Tarot slave: ");
+  Serial.println(x_slave);
 
   /* looking for MFRC522 readers */
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
-    Serial.print(F("Reader "));
-    Serial.print(reader);
-    Serial.print(F(": "));
+    Serial.print("MFRC522 ");
     mfrc522[reader].PCD_DumpVersionToSerial();
     //mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max);
   }
@@ -91,11 +63,8 @@ void loop() {
 
     // Looking for new cards
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
-      Serial.print(F("Reader "));
-      Serial.print(reader);
-
       // Show some details of the PICC (that is: the tag/card)
-      Serial.print(F(": Card UID:"));
+      Serial.print(F("Card UID:"));
       dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
       Serial.println();
 
@@ -128,7 +97,7 @@ void loop() {
       {
         if (tagcount == NR_OF_READERS)
         {
-          OpenDoor();
+          CorrectTag();
         }
         else
         {
@@ -183,25 +152,16 @@ void Initialize()
   access = false;
 }
 
-void OpenDoor()
+void CorrectTag()
 {
-  Serial.println("Welcome! the door is now open");
+  Serial.println("Correct card presented!");
   Initialize();
-  digitalWrite(relayIN, LOW);
-  digitalWrite(GreenLed, HIGH);
-  delay(2000);
-  digitalWrite(relayIN, HIGH);
-  delay(500);
-  digitalWrite(GreenLed, LOW);
 }
 
 void MoreTagsNeeded()
 {
   printTagcount();
   Serial.println("System needs more cards");
-  digitalWrite(RedLed, HIGH);
-  delay(1000);
-  digitalWrite(RedLed, LOW);
   access = false;
 }
 
@@ -209,11 +169,10 @@ void UnknownTag()
 {
   Serial.println("This Tag isn't allowed!");
   printTagcount();
-  for (int flash = 0; flash < 5; flash++)
-  {
-    digitalWrite(RedLed, HIGH);
-    delay(100);
-    digitalWrite(RedLed, LOW);
-    delay(100);
-  }
+}
+
+void requestEvents()
+{
+  Wire.write(value);
+  Serial.println("Sending data back to master!");
 }
