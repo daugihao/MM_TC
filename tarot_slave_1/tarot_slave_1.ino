@@ -3,12 +3,11 @@
 #include <MFRC522.h>
 
 // I2C details
-int value = 27;
-int x_slave = 1;
+#define X_SLAVE 1
 
 // MFRC522 PIN Numbers : RESET + SDAs
-#define RST_PIN         8
-#define SS_PIN        9
+#define RST_PIN 8
+#define SS_PIN  9
 
 // List of Tags UIDs that are allowed to open the puzzle
 byte tagarray[][4] = {
@@ -22,14 +21,11 @@ byte tagarray[][4] = {
 // Inlocking status :
 int tagcount = 0;
 bool access = false;
-int readcount = 10;
 
 #define NR_OF_READERS   1
 
-byte ssPins[] = {SS_PIN};
-
 // Create an MFRC522 instance :
-MFRC522 mfrc522[NR_OF_READERS];
+MFRC522 mfrc522[1];
 
 /**
    Initialize.
@@ -37,21 +33,18 @@ MFRC522 mfrc522[NR_OF_READERS];
 void setup() {
 
   SPI.begin();                  // Init SPI bus
-  Wire.begin(x_slave);          // join i2c bus (address optional for master)
+  Wire.begin(X_SLAVE);          // join i2c bus (address optional for master)
   Wire.onRequest(requestEvents);
 
   Serial.begin(9600);           // Initialize serial communications with the PC
-  while (!Serial);              // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
   Serial.print("Communication set up for Tarot slave: ");
-  Serial.println(x_slave);
+  Serial.println(X_SLAVE);
 
   /* looking for MFRC522 readers */
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
-    mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
-    Serial.print("MFRC522 ");
-    mfrc522[reader].PCD_DumpVersionToSerial();
-    //mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max);
-  }
+  mfrc522[0].PCD_Init(SS_PIN, RST_PIN);
+  Serial.print("MFRC522 ");
+  mfrc522[0].PCD_DumpVersionToSerial();
+  //mfrc522[0].PCD_SetAntennaGain(mfrc522[0].RxGain_max);
 }
 
 /*
@@ -60,7 +53,7 @@ void setup() {
 
 void loop() {
 
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+  int reader = 0;
 
     // Looking for new cards
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
@@ -117,7 +110,6 @@ void loop() {
       // Stop encryption on PCD
       mfrc522[reader].PCD_StopCrypto1();
     } //if (mfrc522[reader].PICC_IsNewC..
-  } //for(uint8_t reader..
 }
 
 /**
@@ -174,11 +166,18 @@ void UnknownTag()
 
 void requestEvents()
 {
-  readcount++;
-  Serial.println(readcount);
-  Wire.write(readcount);
-  Wire.write(readcount);
-  Wire.write(readcount);
-  Wire.write(readcount);
-  Serial.println("Sending data back to master!");
+  byte b0 = mfrc522[0].uid.uidByte[0];
+  byte b1 = mfrc522[0].uid.uidByte[1];
+  byte b2 = mfrc522[0].uid.uidByte[2];
+  byte b3 = mfrc522[0].uid.uidByte[3];
+  Serial.print("Sending data back to master: ");
+  Serial.print(b0, HEX);
+  Serial.print(b1, HEX);
+  Serial.print(b2, HEX);
+  Serial.println(b3, HEX);
+  
+  Wire.write(b0);
+  Wire.write(b1);
+  Wire.write(b2);
+  Wire.write(b3);
 }
