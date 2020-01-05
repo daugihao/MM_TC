@@ -53,18 +53,14 @@ void dump_byte_array(byte * buffer, byte bufferSize) {
 
 void requestEvents()
 {
-  byte b0 = mfrc522.uid.uidByte[0];
-  byte b1 = mfrc522.uid.uidByte[1];
-  byte b2 = mfrc522.uid.uidByte[2];
-  byte b3 = mfrc522.uid.uidByte[3];
-  Serial.print("Sending data back to master: ");
-  Serial.print(b0, HEX);
-  Serial.print(b1, HEX);
-  Serial.print(b2, HEX);
-  Serial.println(b3, HEX);
-  
-  Wire.write(b0);
-  Wire.write(b1);
-  Wire.write(b2);
-  Wire.write(b3);
+  //Send latest read card
+  Wire.write(mfrc522.uid.uidByte[0]);
+  Wire.write(mfrc522.uid.uidByte[1]);
+  Wire.write(mfrc522.uid.uidByte[2]);
+  Wire.write(mfrc522.uid.uidByte[3]);
+  //Reset card tag values
+  mfrc522.uid.uidByte[0] = 0;
+  mfrc522.uid.uidByte[1] = 0;
+  mfrc522.uid.uidByte[2] = 0;
+  mfrc522.uid.uidByte[3] = 0;
 }
