@@ -1,4 +1,6 @@
 #include <Wire.h>
+#include <SoftwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
 
 #define X_MASTER 0
 #define NUMBER_OF_SLAVES 2
@@ -6,8 +8,11 @@
 #define NUMBER_OF_CARDS 5
 
 #define MODE 1
-
 #define DELAY_PERIOD 1000
+
+SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
+DFRobotDFPlayerMini myDFPlayer;
+void printDetail(uint8_t type, int value);
 
 int N_card = 0;
 int N_state = 0;
@@ -24,10 +29,23 @@ byte tag[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
 
 void setup()
 {
+  mySoftwareSerial.begin(9600);
+  Serial.begin(9600);
+  Serial.println(F("DFRobot DFPlayer Mini Demo"));
+  Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
+  if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println(F("Unable to begin:"));
+    Serial.println(F("1.Please recheck the connection!"));
+    Serial.println(F("2.Please insert the SD card!"));
+  }
+  Serial.println(F("DFPlayer Mini online."));
+  
+  myDFPlayer.volume(15);  //Set volume value. From 0 to 30
+  
   Wire.begin(X_MASTER);        // join i2c bus (address optional for master)
-  Serial.begin(9600);  // start Serial for output
   Serial.println("Tarot master is ready to receive data!");
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(9, INPUT);
 }
 
 void loop()
@@ -52,23 +70,27 @@ void loop()
         break;
       case 1:
         // Correct first card audio
+        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
         N_card = checkTag(tag, tagarray, 2);
         N_state = stateChange(N_state, N_card);
         break;
       case 2:
         // Correct second card audio
+        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
         N_state = 3;
         break;
       case 3:
         flash(N_state);
+        myDFPlayer.playFolder(1, N_state);
         // Success audio
         delay(DELAY_PERIOD*5);
         N_state = 0;
         break;
       case 10:
         // FAILURE: Incorrect card audio
+        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
         N_state = 0;
         break;
