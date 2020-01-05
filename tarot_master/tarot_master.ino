@@ -164,8 +164,7 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
 }
 
 int stateChange(int state, int card)
-{
-  
+{ 
   if (card == 0) { // No card is shown - stay where you are
     return state;
   }
