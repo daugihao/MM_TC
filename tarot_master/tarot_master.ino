@@ -2,6 +2,9 @@
 
 #define X_MASTER 0
 #define NUMBER_OF_SLAVES 2
+#define DATA_LENGTH 4
+#define NUMBER_OF_CARDS 5
+
 #define MODE 0
 
 #define DELAY_PERIOD 1000
@@ -15,7 +18,6 @@ byte tagarray[][4] = {
 };
 
 byte tag[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
-int data_length = 4;
 
 void setup()
 {
@@ -33,19 +35,7 @@ void loop()
   // DEBUGGING: Loop through asking each card reader for latest value
   case 0:
     for (int i = 1; i <= NUMBER_OF_SLAVES; i++) {
-      /*Wire.requestFrom(i, data_length);
-      for (int b = 0; b < data_length; b++) {
-        tagreading[1][b] = Wire.read();
-      }
-      Serial.print("Card reader ");
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.print(tagreading[1][0], HEX);
-      Serial.print(tagreading[1][1], HEX);
-      Serial.print(tagreading[1][2], HEX);
-      Serial.println(tagreading[1][3], HEX);*/
-      readTag(tag, tagarray, i);
-      
+      checkTag(tag, tagarray, i);
       delay(DELAY_PERIOD);
     }
     break;
@@ -72,10 +62,11 @@ void flash(int number_flashes)
   delay(DELAY_PERIOD);
 }
 
-void readTag(byte tagreading[][4], byte tagarray[][4], int i)
+int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
 {
-  Wire.requestFrom(i, data_length);
-  for (int b = 0; b < data_length; b++) {
+  int N_card = 0;
+  Wire.requestFrom(i, DATA_LENGTH);
+  for (int b = 0; b < DATA_LENGTH; b++) {
     tagreading[1][b] = Wire.read();
   }
   Serial.print("Card reader ");
@@ -84,7 +75,40 @@ void readTag(byte tagreading[][4], byte tagarray[][4], int i)
   Serial.print(tagreading[1][0], HEX);
   Serial.print(tagreading[1][1], HEX);
   Serial.print(tagreading[1][2], HEX);
-  Serial.println(tagreading[1][3], HEX);
-  return tagreading;
+  Serial.print(tagreading[1][3], HEX);
+
+  // Check if no card present
+  for (int b = 0; b < DATA_LENGTH; b++) {
+    if (tagreading[1][b] != 0x00) {
+      break;
+    }
+    if (b == DATA_LENGTH-1) {
+      Serial.print(" - No card presented: ");
+      Serial.println(N_card);
+      return N_card;
+    }
+  }
+  
+  // Check if card matches
+  N_card = -1;
+  for (int x = 0; x < NUMBER_OF_CARDS; x++) {
+    for (int b = 0; b < DATA_LENGTH; b++) {
+      if (tagreading[1][b] != tagarray[x][b]) {
+        break;
+      } else {
+        if (b == DATA_LENGTH-1) {
+          N_card = x+1;
+        } else {
+          continue;
+        }
+      }
+    }
+    if (N_card != -1) {
+      break;
+    }
+  }
+  Serial.print(" - Card presented: ");
+  Serial.println(N_card);
+  return N_card;
 }
       
