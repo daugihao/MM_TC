@@ -2,7 +2,7 @@
 
 #define X_MASTER 0
 #define NUMBER_OF_SLAVES 2
-#define MODE 1
+#define MODE 0
 
 #define DELAY_PERIOD 1000
 
@@ -14,7 +14,7 @@ byte tagarray[][4] = {
   {0xCC, 0x1D, 0x9D, 0xD6}, // Wheel of Fortune
 };
 
-byte tagreading[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
+byte tag[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
 int data_length = 4;
 
 void setup()
@@ -33,7 +33,7 @@ void loop()
   // DEBUGGING: Loop through asking each card reader for latest value
   case 0:
     for (int i = 1; i <= NUMBER_OF_SLAVES; i++) {
-      Wire.requestFrom(i, data_length);
+      /*Wire.requestFrom(i, data_length);
       for (int b = 0; b < data_length; b++) {
         tagreading[1][b] = Wire.read();
       }
@@ -43,8 +43,9 @@ void loop()
       Serial.print(tagreading[1][0], HEX);
       Serial.print(tagreading[1][1], HEX);
       Serial.print(tagreading[1][2], HEX);
-      Serial.println(tagreading[1][3], HEX);
-    
+      Serial.println(tagreading[1][3], HEX);*/
+      readTag(tag, tagarray, i);
+      
       delay(DELAY_PERIOD);
     }
     break;
@@ -70,3 +71,20 @@ void flash(int number_flashes)
   }
   delay(DELAY_PERIOD);
 }
+
+void readTag(byte tagreading[][4], byte tagarray[][4], int i)
+{
+  Wire.requestFrom(i, data_length);
+  for (int b = 0; b < data_length; b++) {
+    tagreading[1][b] = Wire.read();
+  }
+  Serial.print("Card reader ");
+  Serial.print(i);
+  Serial.print(": ");
+  Serial.print(tagreading[1][0], HEX);
+  Serial.print(tagreading[1][1], HEX);
+  Serial.print(tagreading[1][2], HEX);
+  Serial.println(tagreading[1][3], HEX);
+  return tagreading;
+}
+      
