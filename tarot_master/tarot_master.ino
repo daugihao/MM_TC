@@ -5,9 +5,12 @@
 #define DATA_LENGTH 4
 #define NUMBER_OF_CARDS 5
 
-#define MODE 0
+#define MODE 1
 
 #define DELAY_PERIOD 1000
+
+int N_card = 0;
+int N_state = 0;
 
 byte tagarray[][4] = {
   {0x5C, 0xF9, 0x9D, 0xD6}, // The Fool
@@ -25,8 +28,6 @@ void setup()
   Serial.begin(9600);  // start Serial for output
   Serial.println("Tarot master is ready to receive data!");
   pinMode(LED_BUILTIN, OUTPUT);
-
-  int N_state = 0;
 }
 
 void loop()
@@ -34,32 +35,60 @@ void loop()
   switch (MODE) {
   // DEBUGGING: Loop through asking each card reader for latest value
   case 0:
-    for (int i = 1; i <= NUMBER_OF_SLAVES; i++) {
-      checkTag(tag, tagarray, i);
+    for (int slave = 1; slave <= NUMBER_OF_SLAVES; slave++) {
+      checkTag(tag, tagarray, slave);
       delay(DELAY_PERIOD);
     }
     break;
   // OPERATION: State machine for Tarot reading
   case 1:
-    flash(1);
-    flash(2);
-    flash(3);
-    flash(4);
-    flash(5);
+    Serial.print("State: ");
+    Serial.println(N_state);
+    switch (N_state) {
+      case 0:
+        // Introduction audio
+        N_card = checkTag(tag, tagarray, 1);
+        N_state = stateChange(N_state, N_card);
+        break;
+      case 1:
+        // Correct first card audio
+        flash(N_state);
+        N_card = checkTag(tag, tagarray, 2);
+        N_state = stateChange(N_state, N_card);
+        break;
+      case 2:
+        // Correct second card audio
+        flash(N_state);
+        N_state = 3;
+        break;
+      case 3:
+        flash(N_state);
+        // Success audio
+        delay(DELAY_PERIOD*5);
+        N_state = 0;
+        break;
+      case 10:
+        // FAILURE: Incorrect card audio
+        flash(N_state);
+        N_state = 0;
+        break;
+    }
     break;
   }
-  
+  delay(DELAY_PERIOD);
 }
 
 void flash(int number_flashes)
 {
-  for (int i = 0; i < number_flashes; i++) {
+  if (number_flashes < 0) {
+    number_flashes = 0;
+  }
+  for (int flash = 0; flash < number_flashes; flash++) {
     digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
     delay(DELAY_PERIOD/20);
     digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
     delay(DELAY_PERIOD/5);
   }
-  delay(DELAY_PERIOD);
 }
 
 int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
@@ -90,7 +119,7 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
   }
   
   // Check if card matches
-  N_card = -1;
+  N_card = 10;
   for (int x = 0; x < NUMBER_OF_CARDS; x++) {
     for (int b = 0; b < DATA_LENGTH; b++) {
       if (tagreading[1][b] != tagarray[x][b]) {
@@ -103,7 +132,7 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
         }
       }
     }
-    if (N_card != -1) {
+    if (N_card != 10) {
       break;
     }
   }
@@ -111,4 +140,18 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
   Serial.println(N_card);
   return N_card;
 }
-      
+
+int stateChange(int state, int card)
+{
+  
+  if (card == 0) { // No card is shown - stay where you are
+    return state;
+  }
+  if (card == state + 1) { // Card is incremental card - increase state by one
+    state = state + 1;
+    return state;
+  } else {
+    state = 10;
+    return state;
+  }
+}      
