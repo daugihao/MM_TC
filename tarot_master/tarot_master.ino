@@ -1,5 +1,7 @@
 #include <Wire.h>
 
+#define X_MASTER 0
+
 byte tagarray[][4] = {
   {0x5C, 0xF9, 0x9D, 0xD6},
   {0xCC, 0x21, 0x9D, 0xD6}, 
@@ -15,7 +17,7 @@ int data_length = 4;
 
 void setup()
 {
-  Wire.begin(0);        // join i2c bus (address optional for master)
+  Wire.begin(X_MASTER);        // join i2c bus (address optional for master)
   //Wire.onReceive(receiveEvent);
   Serial.begin(9600);  // start Serial for output
   Serial.println("Tarot master is ready to receive data!");

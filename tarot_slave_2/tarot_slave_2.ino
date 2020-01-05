@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <SPI.h>
 #include <MFRC522.h>
 
 // I2C details
@@ -12,20 +13,16 @@
 MFRC522 mfrc522;
 
 void setup() {
+  Serial.begin(9600);           // Initialize serial communications with the PC
 
   SPI.begin();                  // Init SPI bus
   Wire.begin(X_SLAVE);          // join i2c bus (address optional for master)
-  Wire.onRequest(requestEvents);
-
-  Serial.begin(9600);           // Initialize serial communications with the PC
-  Serial.print("Communication set up for Tarot slave: ");
-  Serial.println(X_SLAVE);
+  Wire.onRequest(requestEvent);
 
   /* looking for MFRC522 readers */
   mfrc522.PCD_Init(SS_PIN, RST_PIN);
   Serial.print("MFRC522 ");
   mfrc522.PCD_DumpVersionToSerial();
-  //mfrc522.PCD_SetAntennaGain(mfrc522[0].RxGain_max);
 }
 
 void loop() {
@@ -51,9 +48,16 @@ void dump_byte_array(byte * buffer, byte bufferSize) {
   }
 }
 
-void requestEvents()
+void requestEvent()
 {
   //Send latest read card
+  Serial.print("Sending data back to master from slave ");
+  Serial.print(X_SLAVE);
+  Serial.print(": ");
+  Serial.print(mfrc522.uid.uidByte[0], HEX);
+  Serial.print(mfrc522.uid.uidByte[1], HEX);
+  Serial.print(mfrc522.uid.uidByte[2], HEX);
+  Serial.println(mfrc522.uid.uidByte[3], HEX);
   Wire.write(mfrc522.uid.uidByte[0]);
   Wire.write(mfrc522.uid.uidByte[1]);
   Wire.write(mfrc522.uid.uidByte[2]);
