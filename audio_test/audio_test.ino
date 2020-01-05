@@ -20,29 +20,21 @@ void setup()
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
-    while(true){
-      delay(0); // Code to compatible with ESP8266 watch dog.
-    }
   }
   Serial.println(F("DFPlayer Mini online."));
   
-  myDFPlayer.volume(20);  //Set volume value. From 0 to 30
-  myDFPlayer.play(1);  //Play the first mp3
+  myDFPlayer.volume(10);  //Set volume value. From 0 to 30
 }
 
 void loop()
 {
-  static unsigned long timer = millis();
-
-  Serial.println(digitalRead(9));
-  if (digitalRead(9)) {
-    myDFPlayer.next();
-  }
   
-  /*if (millis() - timer > 5000) {
-    timer = millis();
-    myDFPlayer.next();  //Play next mp3 every 3 second.
-  }*/
+  if (digitalRead(9)) {
+    myDFPlayer.playFolder(1, 4);
+    delay(1000);
+    myDFPlayer.playFolder(1, 7);
+    delay(1000);
+  }
   
   if (myDFPlayer.available()) {
     printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
