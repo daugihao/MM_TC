@@ -47,6 +47,7 @@ void loop()
     
       delay(DELAY_PERIOD);
     }
+    break;
   // OPERATION: State machine for Tarot reading
   case 1:
     flash(1);
@@ -54,6 +55,7 @@ void loop()
     flash(3);
     flash(4);
     flash(5);
+    break;
   }
   
 }
