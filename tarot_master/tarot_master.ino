@@ -8,7 +8,7 @@
 #define NUMBER_OF_CARDS 5
 
 #define MODE 1
-#define DELAY_PERIOD 1000
+#define DELAY_PERIOD 500
 
 SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
 DFRobotDFPlayerMini myDFPlayer;
@@ -41,11 +41,15 @@ void setup()
   Serial.println(F("DFPlayer Mini online."));
   
   myDFPlayer.volume(15);  //Set volume value. From 0 to 30
+  myDFPlayer.playFolder(1, 100);
   
   Wire.begin(X_MASTER);        // join i2c bus (address optional for master)
   Serial.println("Tarot master is ready to receive data!");
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(9, INPUT);
+
+  N_card = checkTag(tag, tagarray, 1);
+  N_card = checkTag(tag, tagarray, 2);
 }
 
 void loop()
@@ -66,33 +70,35 @@ void loop()
       case 0:
         // Introduction audio
         N_card = checkTag(tag, tagarray, 1);
-        N_state = stateChange(N_state, N_card);
+        N_state = stateChange(N_state, N_card, -1);
         break;
       case 1:
         // Correct first card audio
-        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
         N_card = checkTag(tag, tagarray, 2);
-        N_state = stateChange(N_state, N_card);
+        N_state = stateChange(N_state, N_card, -1);
         break;
       case 2:
         // Correct second card audio
-        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
-        N_state = 3;
+        delay(5000);
+        N_state = stateChange(N_state, N_card, 3);
         break;
       case 3:
-        flash(N_state);
-        myDFPlayer.playFolder(1, N_state);
         // Success audio
-        delay(DELAY_PERIOD*5);
-        N_state = 0;
+        flash(N_state);
+        delay(5000);
+        N_card = checkTag(tag, tagarray, 1);
+        N_card = checkTag(tag, tagarray, 2);
+        N_state = stateChange(N_state, N_card, 0);
         break;
       case 10:
         // FAILURE: Incorrect card audio
-        myDFPlayer.playFolder(1, N_state);
         flash(N_state);
-        N_state = 0;
+        delay(5000);
+        N_card = checkTag(tag, tagarray, 1);
+        N_card = checkTag(tag, tagarray, 2);
+        N_state = stateChange(N_state, N_card, 0);
         break;
     }
     break;
@@ -163,16 +169,26 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
   return N_card;
 }
 
-int stateChange(int state, int card)
+int stateChange(int state, int card, int force)
 { 
+  if (force >= 0) {
+    state = force;
+    if (state == 0) {
+      myDFPlayer.playFolder(1, 100);
+    } else {
+    myDFPlayer.playFolder(1, state);
+    }
+  }
   if (card == 0) { // No card is shown - stay where you are
     return state;
   }
   if (card == state + 1) { // Card is incremental card - increase state by one
     state = state + 1;
+    myDFPlayer.playFolder(1, state);
     return state;
   } else {
     state = 10;
+    myDFPlayer.playFolder(1, state);
     return state;
   }
-}      
+}
