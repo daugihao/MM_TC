@@ -179,7 +179,7 @@ int stateChange(int state, int card, int force)
     myDFPlayer.playFolder(1, state);
     }
   }
-  if (card == 0) { // No card is shown - stay where you are
+  if (card == 0x0 || card == 0xFFFFFF) { // No card is shown - stay where you are
     return state;
   }
   if (card == state + 1) { // Card is incremental card - increase state by one
