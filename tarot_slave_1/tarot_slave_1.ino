@@ -21,6 +21,7 @@ void setup() {
 
   /* looking for MFRC522 readers */
   mfrc522.PCD_Init(SS_PIN, RST_PIN);
+  mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max);
   Serial.print("MFRC522 ");
   mfrc522.PCD_DumpVersionToSerial();
 }
