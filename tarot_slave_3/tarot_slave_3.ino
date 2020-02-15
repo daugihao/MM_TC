@@ -3,7 +3,7 @@
 #include <MFRC522.h>
 
 // I2C details
-#define X_SLAVE 2
+#define X_SLAVE 3
 
 // MFRC522 PIN Numbers : RESET + SDAs
 #define RST_PIN 8

@@ -3,11 +3,11 @@
 #include <DFRobotDFPlayerMini.h>
 
 #define X_MASTER 0
-#define NUMBER_OF_SLAVES 2
+#define NUMBER_OF_SLAVES 1
 #define DATA_LENGTH 4
 #define NUMBER_OF_CARDS 5
 
-#define MODE 1
+#define MODE 0
 #define DELAY_PERIOD 500
 
 SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
