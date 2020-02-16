@@ -4,11 +4,12 @@
 #include <DFRobotDFPlayerMini.h>
 
 #define X_MASTER 0
-#define NUMBER_OF_SLAVES 1
+#define NUMBER_OF_SLAVES 6
 #define DATA_LENGTH 4
 #define NUMBER_OF_CARDS 5
 
-#define MODE 1
+#define MODE 0
+#define TEST_SLAVE 1
 #define DELAY_PERIOD 500
 
 #define LED_PIN 6
@@ -79,8 +80,12 @@ void loop()
       delay(DELAY_PERIOD);
     }
     break;
-  // OPERATION: State machine for Tarot reading
   case 1:
+    checkTag(tag, tagarray, TEST_SLAVE);
+    delay(DELAY_PERIOD);
+    break;
+  // OPERATION: State machine for Tarot reading
+  case 2:
     Serial.print("State: ");
     Serial.println(N_state);
     switch (N_state) {
