@@ -46,7 +46,7 @@ void setup()
   }
   Serial.println(F("DFPlayer Mini online."));
   
-  myDFPlayer.volume(15);  //Set volume value. From 0 to 30
+  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
   myDFPlayer.playFolder(1, 100);
   
   Wire.begin(X_MASTER);        // join i2c bus (address optional for master)
