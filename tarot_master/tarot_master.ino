@@ -6,15 +6,14 @@
 #define X_MASTER 0
 #define NUMBER_OF_SLAVES 6
 #define DATA_LENGTH 4
-#define NUMBER_OF_CARDS 5
+#define NUMBER_OF_CARDS 6
 
-#define MODE 0
+#define MODE 2
 #define TEST_SLAVE 1
 #define DELAY_PERIOD 500
 
 #define LED_PIN 6
 #define NUM_PIXELS 12
-#define DELAY_LED 
 
 //Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
@@ -30,6 +29,7 @@ byte tagarray[][4] = {
   {0xDC, 0xCB, 0x9C, 0xD6}, // The Star
   {0xEC, 0xC5, 0x9C, 0xD6}, // Death
   {0xCC, 0x1D, 0x9D, 0xD6}, // Wheel of Fortune
+  {0x01, 0x01, 0x01, 0x01}
 };
 
 byte tag[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
@@ -38,12 +38,15 @@ void setup()
 {
   mySoftwareSerial.begin(9600);
   Serial.begin(9600);
-  Serial.println(F("DFRobot DFPlayer Mini Demo"));
+  delay(2000);
+
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
-  if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+  while (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println();
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
+    delay(1000);
   }
   Serial.println(F("DFPlayer Mini online."));
   
