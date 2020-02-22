@@ -16,7 +16,7 @@
 #define LED_PIN 6
 #define NUM_PIXELS 12
 
-//Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
 DFRobotDFPlayerMini myDFPlayer;
 void printDetail(uint8_t type, int value);
@@ -59,9 +59,9 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(9, INPUT);
 
-  //pixels.begin();
-  //pixels.show();
-  //pixels.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
+  pixels.begin();
+  pixels.show();
+  pixels.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
 
   for (int slave = 1; slave <= NUMBER_OF_SLAVES; slave++) {
       checkTag(tag, tagarray, slave, false);
@@ -72,12 +72,7 @@ void setup()
 }
 
 void loop()
-{
-  //colorWipe(pixels.Color(255, 0, 0), 50); // Red
-  //colorWipe(pixels.Color(0, 255, 0), 50); // Green
-  //colorWipe(pixels.Color(0, 0, 255), 50); // Blue
-  //colorWipe(pixels.Color(255, 255, 255), 50); // White
-  
+{ 
   switch (MODE) {
   // DEBUGGING: Loop through asking each card reader for latest value
   case 0:
@@ -146,6 +141,24 @@ void loop()
         // Success audio
         flash(N_state);
         delay(5000);
+        colorWipe(pixels.Color(255, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(0, 255, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(255, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 255), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        delay(2000);
+        colorWipe(pixels.Color(255, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(0, 255, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(255, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        colorWipe(pixels.Color(0, 0, 255), 100);
+        colorWipe(pixels.Color(0, 0, 0), 100);
+        delay(10000);
         N_state = stateChange(N_state, N_card, 0);
         break;
       case 10:
@@ -157,7 +170,8 @@ void loop()
     }
     break;
   }
-  delay(DELAY_PERIOD);
+  colorWipe(pixels.Color(255, 255, 255), 50); // White
+  colorWipe(pixels.Color(0, 0, 0), 50); // White
 }
 
 void flash(int number_flashes)
@@ -259,10 +273,10 @@ int stateChange(int state, int card, int force)
 }
 
 // Fill the dots one after the other with a color
-/*void colorWipe(uint32_t c, uint8_t wait) {
+void colorWipe(uint32_t c, uint8_t wait) {
   for(uint16_t i=0; i<pixels.numPixels(); i++) {
     pixels.setPixelColor(i, c);
     pixels.show();
     delay(wait);
   }
-}*/
+}
