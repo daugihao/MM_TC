@@ -11,6 +11,7 @@
 #define MODE 2
 #define TEST_SLAVE 1
 #define DELAY_PERIOD 500
+#define INTRO_REPEAT_TIME 40
 
 #define LED_PIN 6
 #define NUM_PIXELS 12
@@ -22,14 +23,15 @@ void printDetail(uint8_t type, int value);
 
 int N_card = 0;
 int N_state = 0;
+int intro_timer = 0;
 
 byte tagarray[][4] = {
-  {0x5C, 0xF9, 0x9D, 0xD6}, // The Fool
-  {0xCC, 0x21, 0x9D, 0xD6}, // Justice
-  {0xDC, 0xCB, 0x9C, 0xD6}, // The Star
-  {0xEC, 0xC5, 0x9C, 0xD6}, // Death
-  {0xCC, 0x1D, 0x9D, 0xD6}, // Wheel of Fortune
-  {0x01, 0x01, 0x01, 0x01}
+  {0x7C, 0x60, 0x9D, 0xD6}, // 10 of cups
+  {0x5C, 0x64, 0x9D, 0xD6}, // 4 of disks
+  {0x3C, 0xB6, 0x9D, 0xD6}, // Knight of swords
+  {0x4C, 0xF9, 0x9D, 0xD6}, // Prince of cups
+  {0x5C, 0x4B, 0x9E, 0xD6}, // 9 of cups
+  {0x0C, 0x86, 0x9E, 0xD6}  // The fool
 };
 
 byte tag[][4] = {0xFF, 0xFF, 0xFF, 0xFF};
@@ -54,7 +56,6 @@ void setup()
   myDFPlayer.playFolder(1, 100);
   
   Wire.begin(X_MASTER);        // join i2c bus (address optional for master)
-  Serial.println("Tarot master is ready to receive data!");
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(9, INPUT);
 
@@ -63,9 +64,11 @@ void setup()
   //pixels.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
 
   for (int slave = 1; slave <= NUMBER_OF_SLAVES; slave++) {
-      checkTag(tag, tagarray, slave);
+      checkTag(tag, tagarray, slave, false);
       delay(DELAY_PERIOD);
   }
+
+  Serial.println("Tarot master is ready to receive data!");
 }
 
 void loop()
@@ -79,12 +82,12 @@ void loop()
   // DEBUGGING: Loop through asking each card reader for latest value
   case 0:
     for (int slave = 1; slave <= NUMBER_OF_SLAVES; slave++) {
-      checkTag(tag, tagarray, slave);
+      checkTag(tag, tagarray, slave, true);
       delay(DELAY_PERIOD);
     }
     break;
   case 1:
-    checkTag(tag, tagarray, TEST_SLAVE);
+    checkTag(tag, tagarray, TEST_SLAVE, true);
     delay(DELAY_PERIOD);
     break;
   // OPERATION: State machine for Tarot reading
@@ -94,35 +97,61 @@ void loop()
     switch (N_state) {
       case 0:
         // Introduction audio
-        N_card = checkTag(tag, tagarray, 1);
+        intro_timer++;
+        if (intro_timer >= INTRO_REPEAT_TIME) {
+          N_state = stateChange(N_state, N_card, 0);
+          intro_timer = 0;
+          break;
+        }
+        N_card = checkTag(tag, tagarray, N_state+1, true);
         N_state = stateChange(N_state, N_card, -1);
         break;
       case 1:
         // Correct first card audio
         flash(N_state);
-        N_card = checkTag(tag, tagarray, 2);
+        N_card = checkTag(tag, tagarray, N_state+1, true);
         N_state = stateChange(N_state, N_card, -1);
         break;
       case 2:
         // Correct second card audio
         flash(N_state);
-        delay(5000);
-        N_state = stateChange(N_state, N_card, 3);
+        N_card = checkTag(tag, tagarray, N_state+1, true);
+        N_state = stateChange(N_state, N_card, -1);
         break;
       case 3:
+        // Correct third card audio
+        flash(N_state);
+        N_card = checkTag(tag, tagarray, N_state+1, true);
+        N_state = stateChange(N_state, N_card, -1);
+        break;
+      case 4:
+        // Correct fourth card audio
+        flash(N_state);
+        N_card = checkTag(tag, tagarray, N_state+1, true);
+        N_state = stateChange(N_state, N_card, -1);
+        break;
+      case 5:
+        // Correct fifth card audio
+        flash(N_state);
+        N_card = checkTag(tag, tagarray, N_state+1, true);
+        N_state = stateChange(N_state, N_card, -1);
+        break;
+      case 6:
+        // Correct sixth card audio
+        flash(N_state);
+        delay(5000);
+        N_state = stateChange(N_state, N_card, 7);
+        break;
+      case 7:
         // Success audio
         flash(N_state);
         delay(5000);
-        N_card = checkTag(tag, tagarray, 1);
-        N_card = checkTag(tag, tagarray, 2);
         N_state = stateChange(N_state, N_card, 0);
         break;
       case 10:
         // FAILURE: Incorrect card audio
         flash(N_state);
         delay(5000);
-        N_card = checkTag(tag, tagarray, 1);
-        N_card = checkTag(tag, tagarray, 2);
         N_state = stateChange(N_state, N_card, 0);
         break;
     }
@@ -144,20 +173,22 @@ void flash(int number_flashes)
   }
 }
 
-int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
+int checkTag(byte tagreading[][4], byte tagarray[][4], int i, bool show_output)
 {
   int N_card = 0;
   Wire.requestFrom(i, DATA_LENGTH);
   for (int b = 0; b < DATA_LENGTH; b++) {
     tagreading[1][b] = Wire.read();
   }
-  Serial.print("Card reader ");
-  Serial.print(i);
-  Serial.print(": ");
-  Serial.print(tagreading[1][0], HEX);
-  Serial.print(tagreading[1][1], HEX);
-  Serial.print(tagreading[1][2], HEX);
-  Serial.print(tagreading[1][3], HEX);
+  if (show_output) {
+    Serial.print("Card reader ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(tagreading[1][0], HEX);
+    Serial.print(tagreading[1][1], HEX);
+    Serial.print(tagreading[1][2], HEX);
+    Serial.print(tagreading[1][3], HEX);
+  }
 
   // Check if no card present
   for (int b = 0; b < DATA_LENGTH; b++) {
@@ -165,8 +196,10 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
       break;
     }
     if (b == DATA_LENGTH-1) {
-      Serial.print(" - No card presented: ");
-      Serial.println(N_card);
+      if (show_output) {
+        Serial.print(" - No card presented: ");
+        Serial.println(N_card);
+      }
       return N_card;
     }
   }
@@ -189,13 +222,19 @@ int checkTag(byte tagreading[][4], byte tagarray[][4], int i)
       break;
     }
   }
-  Serial.print(" - Card presented: ");
-  Serial.println(N_card);
+  if (show_output) {
+    Serial.print(" - Card presented: ");
+    Serial.println(N_card);
+  }
   return N_card;
 }
 
 int stateChange(int state, int card, int force)
 { 
+  for (int slave = 1; slave <= NUMBER_OF_SLAVES; slave++) {
+      checkTag(tag, tagarray, slave, false);
+  }
+  
   if (force >= 0) {
     state = force;
     if (state == 0) {
@@ -203,6 +242,7 @@ int stateChange(int state, int card, int force)
     } else {
     myDFPlayer.playFolder(1, state);
     }
+    return state;
   }
   if (card == 0x0 || card == 0xFFFFFF) { // No card is shown - stay where you are
     return state;
