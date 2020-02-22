@@ -19,6 +19,7 @@ MFRC522 mfrc522;
 
 void setup() {
   Serial.begin(9600);           // Initialize serial communications with the PC
+  delay(2000);
 
   SPI.begin();                  // Init SPI bus
   Wire.begin(X_SLAVE);          // join i2c bus (address optional for master)
@@ -26,7 +27,7 @@ void setup() {
 
   /* looking for MFRC522 readers */
   mfrc522.PCD_Init(SS_PIN, RST_PIN);
-  mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max);
+  //mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_max);
   Serial.print("MFRC522 ");
   mfrc522.PCD_DumpVersionToSerial();
 }
