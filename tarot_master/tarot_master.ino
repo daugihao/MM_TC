@@ -15,6 +15,8 @@
 
 #define LED_PIN 6
 #define NUM_PIXELS 12
+#define NORMAL_WAIT 50
+#define REVEAL_WAIT 100
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
@@ -141,23 +143,9 @@ void loop()
         // Success audio
         flash(N_state);
         delay(5000);
-        colorWipe(pixels.Color(255, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(0, 255, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(255, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 255), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
+        revealColor();
         delay(2000);
-        colorWipe(pixels.Color(255, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(0, 255, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(255, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
-        colorWipe(pixels.Color(0, 0, 255), 100);
-        colorWipe(pixels.Color(0, 0, 0), 100);
+        revealColor();
         delay(10000);
         N_state = stateChange(N_state, N_card, 0);
         break;
@@ -170,8 +158,8 @@ void loop()
     }
     break;
   }
-  colorWipe(pixels.Color(255, 255, 255), 50); // White
-  colorWipe(pixels.Color(0, 0, 0), 50); // White
+  colorWipe(pixels.Color(255, 255, 255), NORMAL_WAIT); // White
+  colorWipe(pixels.Color(0, 0, 0), NORMAL_WAIT); // White
 }
 
 void flash(int number_flashes)
@@ -279,4 +267,15 @@ void colorWipe(uint32_t c, uint8_t wait) {
     pixels.show();
     delay(wait);
   }
+}
+
+void revealColor() {
+  colorWipe(pixels.Color(255, 0, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 0, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 255, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 0, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(255, 0, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 0, 0), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 0, 255), REVEAL_WAIT);
+  colorWipe(pixels.Color(0, 0, 0), REVEAL_WAIT);
 }
