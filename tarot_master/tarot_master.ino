@@ -15,7 +15,7 @@
 
 #define LED_PIN 6
 #define NUM_PIXELS 12
-#define NORMAL_WAIT 50
+#define NORMAL_WAIT 100
 #define REVEAL_WAIT 100
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
